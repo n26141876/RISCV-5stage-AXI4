@@ -1,0 +1,6 @@
+*.fsdb
+*.vcd
+*.log
+csrc/
+simv*
+*.daidir/
