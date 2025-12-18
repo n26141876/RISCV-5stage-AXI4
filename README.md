@@ -34,7 +34,8 @@ The design supports **RV32IM** instruction sets (Integer + Multiplication) and f
 
 ```mermaid
 graph TD
-    subgraph "CPU Wrapper (Master)"
+    %% Subgraph for CPU
+    subgraph CPU_Wrapper ["CPU Wrapper (Master)"]
         CPU[RISC-V 5-Stage Core]
         M0[Master 0: Instruction]
         M1[Master 1: Data Load/Store]
@@ -42,10 +43,11 @@ graph TD
         CPU --> M1
     end
 
-    subgraph "AXI Interconnect (Bus Matrix)"
-        Arbiter[Round-Robin Arbiter]
-        Decoder[Address Decoder]
-        Crossbar[Read/Write Channels Crossbar]
+    %% Subgraph for AXI
+    subgraph AXI ["AXI Interconnect"]
+        Arbiter
+        Decoder
+        Crossbar
         
         M0 ==> Crossbar
         M1 ==> Crossbar
@@ -53,26 +55,18 @@ graph TD
         Crossbar -.-> Decoder
     end
 
-    subgraph "Slaves (Memory Map)"
-        S0[Slave 0: IM SRAM]
-        S1[Slave 1: DM SRAM]
-        SD[Default Slave]
-        
-        subgraph "Address: 0x0000_0000"
-            S0
-        end
-        subgraph "Address: 0x0001_0000"
-            S1
-        end
-        subgraph "Unmapped Address"
-            SD
-        end
+    %% Subgraph for Slaves
+    subgraph Slaves ["Memory Slaves"]
+        S0[S0: IM SRAM<br/>0x0000_0000]
+        S1[S1: DM SRAM<br/>0x0001_0000]
+        SD[Default Slave<br/>Unmapped]
     end
 
     Crossbar ==> S0
     Crossbar ==> S1
     Crossbar ==> SD
 
+    %% Styling
     style CPU fill:#f9f,stroke:#333,stroke-width:2px
     style Crossbar fill:#bbf,stroke:#333,stroke-width:2px
     style S0 fill:#dfd,stroke:#333,stroke-width:2px
