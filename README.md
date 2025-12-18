@@ -1,9 +1,9 @@
-# RISC-V 32-bit 5-Stage Pipelined CPU with AXI4 Interconnect
+# RISCV-5Stage-AXI4
 
 ## 📖 Overview
-This project implements a **32-bit RISC-V processor** with a classical **5-stage pipeline architecture**, integrated with a custom **AXI4 (Advanced eXtensible Interface) bus system**. The design supports **RV32IM** instruction sets (Integer + Multiplication) and features dynamic branch prediction, hazard handling, and a robust memory interface compliant with AMBA AXI4 protocols.
+This repository contains the SystemVerilog RTL implementation of a **32-bit RISC-V processor** with a classical **5-stage pipeline architecture**, integrated with a custom **AXI4 (Advanced eXtensible Interface) bus system**.
 
-The system is verified using both directed assembly tests (sorting, GCD, etc.) and **JasperGold Verification IP (VIP)** to ensure protocol compliance for the AXI Bridge, Master, and Slave interfaces.
+The design supports **RV32IM** instruction sets (Integer + Multiplication) and features dynamic branch prediction, hazard handling, and a robust memory interface compliant with AMBA AXI4 protocols.
 
 ## 🚀 Key Features
 
@@ -27,27 +27,53 @@ The system is verified using both directed assembly tests (sorting, GCD, etc.) a
 * **Arbitration**: **Round-Robin Arbiter** to manage bus contention between Instruction and Data masters.
 * **Burst Mode**:
     * Masters initiate Single transfers.
-    * **SRAM Slaves & Bridge support INCR Burst transactions** (Verified via VIP).
+    * **SRAM Slaves & Bridge support INCR Burst transactions**.
     * Supports `WSTRB` (Write Strobe) for Byte/Half-word stores (`SB`, `SH`).
 
-## 📂 File Structure
+## 🏗️ System Architecture
 
-```text
-.
-├── src/
-│   ├── top.sv                 # Top-level module integrating CPU, AXI, and SRAMs
-│   ├── CPU.sv                 # 5-stage pipeline integration
-│   ├── Controller.sv          # Main control unit (Opcode decoder)
-│   ├── Instruction_Decoder.sv # Decoder for ALU control, ImmGen, and CSRs
-│   ├── ALU.sv                 # Arithmetic Logic Unit (includes M-extension)
-│   ├── BranchPredictor.sv     # 2-bit saturating counter predictor
-│   ├── Hazard.sv              # Hazard detection unit
-│   ├── Forwarding.sv          # Data forwarding unit
-│   ├── AXI.sv                 # AXI4 Interconnect (Bridge/Crossbar)
-│   ├── Arbiter.sv             # Round-Robin Arbiter for AXI masters
-│   ├── SRAM_wrapper.sv        # AXI-compliant SRAM controller (supports Burst)
-│   └── ...
-├── include/
-│   └── AXI_define.svh         # AXI4 parameter definitions
-├── sim/                       # Testbenches and test programs
-└── script/                    # Synthesis scripts
+```mermaid
+graph TD
+    subgraph "CPU Wrapper (Master)"
+        CPU[RISC-V 5-Stage Core]
+        M0[Master 0: Instruction]
+        M1[Master 1: Data Load/Store]
+        CPU --> M0
+        CPU --> M1
+    end
+
+    subgraph "AXI Interconnect (Bus Matrix)"
+        Arbiter[Round-Robin Arbiter]
+        Decoder[Address Decoder]
+        Crossbar[Read/Write Channels Crossbar]
+        
+        M0 ==> Crossbar
+        M1 ==> Crossbar
+        Crossbar -.-> Arbiter
+        Crossbar -.-> Decoder
+    end
+
+    subgraph "Slaves (Memory Map)"
+        S0[Slave 0: IM SRAM]
+        S1[Slave 1: DM SRAM]
+        SD[Default Slave]
+        
+        subgraph "Address: 0x0000_0000"
+            S0
+        end
+        subgraph "Address: 0x0001_0000"
+            S1
+        end
+        subgraph "Unmapped Address"
+            SD
+        end
+    end
+
+    Crossbar ==> S0
+    Crossbar ==> S1
+    Crossbar ==> SD
+
+    style CPU fill:#f9f,stroke:#333,stroke-width:2px
+    style Crossbar fill:#bbf,stroke:#333,stroke-width:2px
+    style S0 fill:#dfd,stroke:#333,stroke-width:2px
+    style S1 fill:#dfd,stroke:#333,stroke-width:2px
